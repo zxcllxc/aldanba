@@ -1,6 +1,6 @@
 "use client";
 import { useCallback, useEffect, useMemo, useRef } from "react";
-import { audioUrl } from "./audio-key";
+import { audioUrl, localAudioUrl } from "./audio-key";
 import type { Lang } from "@/content/types";
 
 /**
@@ -36,18 +36,27 @@ export function useVoice(lang: Lang) {
           if (done) return;
           done = true;
           clearTimeout(guard);
-          a.onended = a.onerror = null;
-          resolve(my === token.current); // false = interrupted by a newer line or stop()
+          const current = my === token.current;
+          if (current) a.onended = a.onerror = null; // never detach a newer line's handlers
+          resolve(current); // false = interrupted by a newer line or stop()
         };
         const fallback = () => setTimeout(finish, Math.max(2500, text.length * 65));
         let guard = setTimeout(finish, 30000);
+        const local = localAudioUrl(lang, voice, text);
         a.onended = finish;
         a.onerror = () => {
-          clearTimeout(guard);
-          guard = fallback();
+          if (a.src.endsWith(local) || my !== token.current) {
+            clearTimeout(guard);
+            guard = fallback();
+            return;
+          }
+          a.src = local; // CDN failed: try our own copy
+          a.play().catch(() => {});
         };
         a.src = audioUrl(lang, voice, text);
-        a.play().catch(() => {
+        a.play().catch((e: Error) => {
+          // Load errors are handled by onerror; here only "autoplay blocked" -> read-time pause.
+          if (e?.name !== "NotAllowedError") return;
           clearTimeout(guard);
           guard = fallback();
         });

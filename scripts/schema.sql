@@ -17,5 +17,5 @@ create table if not exists progress (
   primary key (participant_id, lesson_id)
 );
 
-create index if not exists progress_lesson_idx on progress (lesson_id);
+drop index if exists progress_lesson_idx;
 create index if not exists participants_created_idx on participants (created_at);

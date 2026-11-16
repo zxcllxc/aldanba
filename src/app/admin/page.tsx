@@ -67,12 +67,12 @@ export default function Admin() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const download = async (type: string) => {
-    const res = await fetch(`/api/admin/export?type=${type}`, { headers: { "x-admin-key": key } });
+  const download = async () => {
+    const res = await fetch("/api/admin/export", { headers: { "x-admin-key": key } });
     if (!res.ok) return setError("Не удалось скачать файл");
     const a = document.createElement("a");
     a.href = URL.createObjectURL(await res.blob());
-    a.download = `aldanba-${type}-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.download = `aldanba-${new Date().toISOString().slice(0, 10)}.csv`;
     a.click();
   };
 
@@ -101,8 +101,7 @@ export default function Admin() {
       <header className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl font-extrabold">Алданба! — отчёт</h1>
         <div className="flex flex-wrap gap-2">
-          <button onClick={() => download("summary")} className="min-h-11 rounded-xl bg-safe px-4 font-bold text-white">⬇ Сводка (Excel)</button>
-          <button onClick={() => download("participants")} className="min-h-11 rounded-xl bg-white px-4 font-bold shadow-sm">⬇ Все участники (Excel)</button>
+          <button onClick={download} className="min-h-11 rounded-xl bg-safe px-4 font-bold text-white">⬇ Отчёт (Excel)</button>
           <button onClick={() => load(key)} className="min-h-11 rounded-xl bg-white px-4 font-bold shadow-sm">↻ Обновить</button>
         </div>
       </header>

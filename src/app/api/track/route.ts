@@ -1,6 +1,6 @@
 import { db } from "@/lib/db";
 import { AGE_IDS, DISTRICT_IDS } from "@/lib/i18n";
-import { FINAL_ID, LESSON_IDS } from "@/content";
+import { FINAL_ID, LESSONS, lessonById } from "@/content";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const int = (v: unknown, max: number) => Number.isInteger(v) && (v as number) >= 0 && (v as number) <= max;
@@ -28,8 +28,9 @@ export async function POST(req: Request) {
     return Response.json({ ok: true });
   }
 
-  const validLesson = typeof lesson === "string" && (LESSON_IDS.has(lesson) || lesson === FINAL_ID);
-  if (!validLesson || !int(total, 20) || !int(score, total as number) || (total as number) < 1)
+  // total must be exactly the number of questions of that lesson (keeps percentages honest)
+  const expected = lesson === FINAL_ID ? LESSONS.length : typeof lesson === "string" ? lessonById(lesson)?.quiz.length : undefined;
+  if (!expected || total !== expected || !int(score, expected))
     return Response.json({ error: "bad result" }, { status: 400 });
 
   // One round trip: make sure the participant exists, then keep the best result per lesson.
