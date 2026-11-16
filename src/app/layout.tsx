@@ -8,10 +8,13 @@ const rubik = Rubik({
   weight: ["400", "500", "700", "800"],
 });
 
+const description =
+  "Алаяқтықтың 14 түрі туралы қысқа бейнесабақтар мен тесттер. Короткие видеоуроки и тесты о 14 видах мошенничества.";
 export const metadata: Metadata = {
+  metadataBase: new URL("https://aldanba.vercel.app"),
   title: "Алданба! — алаяқтарды танып үйрен",
-  description:
-    "Алаяқтықтың 14 түрі туралы қысқа бейнесабақтар мен тесттер. Короткие видеоуроки и тесты о 14 видах мошенничества.",
+  description,
+  openGraph: { title: "Алданба!", description, images: ["/og.png"], type: "website" },
 };
 
 export const viewport: Viewport = { themeColor: "#0e5fa8", width: "device-width", initialScale: 1 };

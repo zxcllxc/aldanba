@@ -1,7 +1,7 @@
 // Generates narration mp3 for every line (both languages) with edge-tts.
 // Usage: npx tsx scripts/tts.mts   (needs: python -m pip install edge-tts)
 import { execFile } from "node:child_process";
-import { existsSync, mkdirSync, readdirSync, unlinkSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, unlinkSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { promisify } from "node:util";
 import { LESSONS } from "../src/content";
@@ -38,7 +38,8 @@ for (const lang of ["kk", "ru"] as const) {
 }
 
 mkdirSync(OUT, { recursive: true });
-const todo = [...jobs].filter(([k]) => !existsSync(join(OUT, `${k}.mp3`)));
+const ok = (f: string) => existsSync(f) && statSync(f).size > 1024; // failed runs leave empty files
+const todo = [...jobs].filter(([k]) => !ok(join(OUT, `${k}.mp3`)));
 console.log(`lines: ${jobs.size}, to generate: ${todo.length}`);
 
 let failed = 0;
@@ -47,11 +48,29 @@ async function worker() {
     const [key, j] = todo.shift()!;
     const file = join(OUT, `${key}.mp3`);
     for (let attempt = 1; attempt <= 3; attempt++) {
+      // edge-tts sometimes returns no audio for --rate on some lines: later attempts drop rate/pitch
+      const args = attempt === 1 ? VOICES[j.lang][j.voice] : VOICES[j.lang][j.voice].slice(0, 2);
       try {
-        await run("python", ["-m", "edge_tts", ...VOICES[j.lang][j.voice], "--text", j.text.trim(), "--write-media", file]);
-        break;
+        if (attempt < 3) {
+          await run("python", ["-m", "edge_tts", ...args, "--text", j.text.trim(), "--write-media", file]);
+        } else {
+          // Some voices intermittently fail on long sentences: voice each short part, then join mp3 frames.
+          const parts = j.text.split(/(?<=[.!?,])\s+/).filter(Boolean);
+          const bufs: Buffer[] = [];
+          for (const [i, part] of parts.entries()) {
+            const tmp = `${file}.${i}.part`;
+            await run("python", ["-m", "edge_tts", ...args, "--text", part, "--write-media", tmp]);
+            if (!ok(tmp)) throw new Error(`empty part: ${part}`);
+            bufs.push(readFileSync(tmp));
+            unlinkSync(tmp);
+          }
+          writeFileSync(file, Buffer.concat(bufs));
+        }
+        if (ok(file)) break;
+        throw new Error("empty audio");
       } catch (e) {
         if (attempt === 3) {
+          if (existsSync(file)) unlinkSync(file);
           failed++;
           console.error("FAILED", key, j.text.slice(0, 40), (e as Error).message.slice(0, 120));
         }
