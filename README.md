@@ -1,36 +1,31 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Алданба!
 
-## Getting Started
+Платформа против мошенников для жителей Жамбылской области: 14 коротких озвученных «мультиков» о видах мошенничества, тесты после каждого урока, итоговый тест и сертификат. Казахский и русский языки.
 
-First, run the development server:
+## Как устроено
+- **Сайт:** Next.js 16 + Tailwind на Vercel. Все страницы статические и раздаются с CDN, поэтому одновременный заход тысяч людей сайт не роняет.
+- **Уроки:** `src/content/lessons/l01.ts … l14.ts`. Урок состоит из сцен (звонок, SMS, чат, сайт, объявление, банк, персонаж, флаги, правило) и реплик на `kk` и `ru`.
+- **Озвучка:** mp3 в `public/audio`, генерирует `npm run tts` (edge-tts: голоса kk-KZ Aigul/Daulet, ru-RU Svetlana/Dmitry). Имя файла — хеш текста. Поменяли текст → запустите `npm run tts`: он создаст новые файлы и удалит старые.
+- **База:** Neon Postgres (через Vercel). Таблицы `participants` (случайный ID устройства, возраст, район, язык) и `progress` (урок, баллы). **Имён, телефонов и ИИН в базе нет**: имя хранится только в телефоне пользователя, для сертификата.
+- **API:** `POST /api/track` — регистрация и результаты урока. `GET /api/admin/stats`, `GET /api/admin/export` — отчёты, только с паролем.
 
+## Отчёты
+Откройте `/admin` и введите пароль администратора (переменная `ADMIN_PASSWORD` в Vercel → Settings → Environment Variables; локально — в `.env.local`). Что есть в админке:
+- цифры, разбивка по районам, возрасту, урокам и дням;
+- фильтры по району, возрасту и датам;
+- кнопки «Сводка (Excel)» и «Все участники (Excel)» — CSV, который открывается в Excel.
+
+## Команды
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
+npm run dev          # http://localhost:3000
+npm run tts          # озвучка после правки текстов (нужен: python -m pip install edge-tts)
+npm run build        # применяет схему БД и собирает сайт
+node scripts/load-test.mjs https://<сайт> 200 30          # нагрузочный тест: адрес, параллельно, секунд
+node --env-file=.env.local scripts/load-test.mjs --cleanup  # удалить тестовых пользователей
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
-
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
-
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Правила (законы РК)
+- Имя не отправлять на сервер (Закон РК № 94-V «О персональных данных»). Если когда-нибудь понадобится собирать ПД (ФИО, телефон), базу нужно перенести на сервер в Казахстане и добавить согласие на обработку ПД.
+- Казахский язык — по умолчанию.
+- Никаких логотипов и названий реальных банков, маркетплейсов и мессенджеров. Номера в примерах замаскированы, ссылки выдуманы.
